@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>西瓜皮也解决不了</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M10 50 A40 40 0 0 1 90 50 L82 50 A32 32 0 0 0 18 50 Z' fill='%232e7d32'/></svg>">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%;
+  }
+  body {
+    font-family: "微软雅黑", "Segoe UI", sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    overflow: auto;
+    position: relative;
+    background:
+      radial-gradient(circle at 20% 30%, #3a5a8c 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, #5c3d6b 0%, transparent 50%),
+      linear-gradient(135deg, #1e3a5f 0%, #2c3e50 100%);
+    transition: background 0.6s ease;
+  }
+  body.coffee-bg {
+    background:
+      radial-gradient(circle at 20% 30%, #6b4a2c 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, #3a2818 0%, transparent 50%),
+      linear-gradient(135deg, #3a2818 0%, #2c1707 100%);
+  }
+
+  /* === 软件窗口 === */
+  .window {
+    width: min(900px, 100%);
+    max-height: calc(100vh - 60px);
+    background: #f5f0e6;
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+  body.coffee-bg .window {
+    background: #faf3e7;
+  }
+  .window.maximized {
+    width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+  .window.minimized {
+    transform: scale(0.1);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* === 标题栏 === */
+  .titlebar {
+    height: 40px;
+    background: linear-gradient(180deg, #4a3526 0%, #2c1707 100%);
+    color: #fff6e8;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .titlebar .app-icon {
+    width: 18px; height: 18px;
+    margin-right: 8px;
+    border-radius: 3px;
+    background: #f5a623;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #2c1707;
+    font-weight: bold;
+  }
+  .titlebar .app-title {
+    font-size: 13px;
+    letter-spacing: 1px;
+    flex: 1;
+  }
+  .window-controls {
+    display: flex;
+    gap: 2px;
+  }
+  .win-btn {
+    width: 40px; height: 28px;
+    background: transparent;
+    color: #fff6e8;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+  .win-btn:hover { background: rgba(255,255,255,0.15); }
+  .win-btn.close:hover { background: #e53935; }
+  .win-btn svg { width: 12px; height: 12px; }
+
+  /* === 菜单栏 === */
+  .menubar {
+    height: 32px;
+    background: #ede0cd;
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    border-bottom: 1px solid #d8b899;
+    flex-shrink: 0;
+    font-size: 13px;
+    color: #4b2c16;
+  }
+  body.coffee-bg .menubar { background: #f0e0c8; }
+  .menu-item {
+    padding: 4px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    position: relative;
+  }
+  .menu-item:hover {
+    background: #c8a878;
+    color: #2c1707;
+  }
+
+  /* === 内容区 === */
+  .window-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 30px 24px 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  /* 状态栏 */
+  .statusbar {
+    height: 24px;
+    background: #ede0cd;
+    border-top: 1px solid #d8b899;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-size: 11px;
+    color: #6b3d1f;
+    flex-shrink: 0;
+  }
+  body.coffee-bg .statusbar { background: #f0e0c8; }
+  .statusbar .status-item { margin-right: 16px; }
+  .statusbar .status-right { margin-left: auto; }
+
+  .watermelon {
+    width: 280px;
+    height: 280px;
+    margin-bottom: 30px;
+    animation: sway 3s ease-in-out infinite;
+  }
+  @keyframes sway {
+    0%, 100% { transform: rotate(-5deg); }
+    50% { transform: rotate(5deg); }
+  }
+  h1 {
+    font-size: clamp(36px, 8vw, 72px);
+    color: #2e7d32;
+    letter-spacing: 6px;
+    text-shadow: 3px 3px 0 #ffb74d, 6px 6px 0 rgba(0,0,0,0.1);
+    margin-bottom: 12px;
+  }
+  .subtitle {
+    color: #c62828;
+    font-size: 18px;
+    letter-spacing: 2px;
+  }
+  .searched {
+    margin-top: 28px;
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-size: 18px;
+    text-align: center;
+    max-width: 90vw;
+  }
+  .searched.ok {
+    background: #fff;
+    color: #2e7d32;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  .searched.ok span {
+    font-weight: bold;
+    font-size: 22px;
+    margin: 0 4px;
+  }
+  .searched.bad {
+    background: #fff5f5;
+    color: #c62828;
+    border: 2px dashed #e53935;
+    box-shadow: 0 4px 16px rgba(229, 57, 53, 0.15);
+    animation: shake 0.5s ease;
+  }
+  .searched.bad span {
+    font-weight: bold;
+    font-size: 22px;
+    color: #e53935;
+    margin: 0 4px;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+
+  .coffee-wrap {
+    display: none;
+    text-align: center;
+    animation: fadeIn 0.8s ease;
+  }
+  .coffee-wrap.show { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .coffee-svg {
+    width: 280px;
+    height: 280px;
+    margin-bottom: 20px;
+  }
+  .steam {
+    animation: steam 2.5s ease-in-out infinite;
+    transform-origin: center bottom;
+  }
+  .steam.delay-1 { animation-delay: 0.5s; }
+  .steam.delay-2 { animation-delay: 1s; }
+  @keyframes steam {
+    0%, 100% { opacity: 0; transform: translateY(0) scaleX(0.9); }
+    50% { opacity: 0.7; transform: translateY(-14px) scaleX(1.1); }
+  }
+  .coffee-wrap h2 {
+    font-size: clamp(28px, 5vw, 44px);
+    color: #4b2c16;
+    letter-spacing: 4px;
+    margin-bottom: 16px;
+    text-shadow: 2px 2px 0 #f6d2a8;
+  }
+  .coffee-desc {
+    max-width: 540px;
+    margin: 0 auto;
+    background: rgba(255,255,255,0.75);
+    padding: 20px 28px;
+    border-radius: 12px;
+    color: #4b2c16;
+    font-size: 15px;
+    line-height: 1.9;
+    text-align: left;
+    box-shadow: 0 4px 16px rgba(75, 44, 22, 0.12);
+    min-height: 80px;
+  }
+  .coffee-desc h3 {
+    font-size: 16px;
+    margin-bottom: 6px;
+    color: #6b3d1f;
+  }
+  .coffee-desc h3:not(:first-child) { margin-top: 10px; }
+  /* "咖啡豆文学" 主标题：居中放大 */
+  .coffee-desc h3.main-title {
+    text-align: center;
+    font-size: 32px;
+    color: #2c1707;
+    letter-spacing: 6px;
+    margin-bottom: 14px;
+    padding: 10px 0;
+    border-bottom: 2px dashed #6b3d1f;
+    text-shadow: 2px 2px 0 #f6d2a8;
+  }
+  .coffee-tag {
+    display: inline-block;
+    margin: 4px 4px 0 0;
+    padding: 2px 10px;
+    background: #6b3d1f;
+    color: #fff6e8;
+    font-size: 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .coffee-tag:hover { background: #4b2c16; }
+  .coffee-tag.active { background: #2c1707; }
+  /* 章节内容：默认隐藏 */
+  .chapter-content {
+    display: none;
+    margin-top: 12px;
+    padding: 12px 16px;
+    background: #fff6e8;
+    border-left: 3px solid #6b3d1f;
+    border-radius: 4px;
+    color: #4b2c16;
+    font-size: 14px;
+    line-height: 1.8;
+  }
+  .chapter-content.show { display: block; }
+
+  /* 编写者 */
+  .author {
+    margin-top: 20px;
+    padding: 10px 14px;
+    background: #f3e4d2;
+    border-radius: 8px;
+    color: #4b2c16;
+    font-size: 13px;
+  }
+  .author .av {
+    display: inline-block;
+    width: 28px; height: 28px;
+    line-height: 28px;
+    text-align: center;
+    background: #6b3d1f;
+    color: #fff6e8;
+    border-radius: 50%;
+    margin-right: 8px;
+    font-weight: bold;
+    vertical-align: middle;
+  }
+  .author b { color: #2c1707; }
+
+  /* 你知道吗？ */
+  .did-you-know {
+    margin-top: 14px;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, #fff8d6 0%, #ffe9a8 100%);
+    border-left: 4px solid #f5a623;
+    border-radius: 8px;
+    color: #6b4a0a;
+    box-shadow: 0 2px 8px rgba(245, 166, 35, 0.15);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .did-you-know:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 166, 35, 0.25);
+  }
+  .did-you-know .dyk-title {
+    font-size: 15px;
+    font-weight: bold;
+    color: #8a5a00;
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+  .did-you-know .dyk-body {
+    font-size: 14px;
+    line-height: 1.8;
+    color: #5c3d05;
+    transition: opacity 0.3s;
+  }
+  .did-you-know .dyk-body.fade {
+    opacity: 0;
+  }
+
+  /* 点赞 */
+  .like-row {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .like-btn {
+    background: #6b3d1f;
+    color: #fff6e8;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+  .like-btn:hover { background: #4b2c16; transform: scale(1.05); }
+  .like-btn.liked { background: #e53935; }
+  .like-count { font-size: 14px; color: #6b3d1f; }
+
+  /* 评论区 */
+  .comments {
+    margin-top: 22px;
+  }
+  .comments h3 {
+    color: #6b3d1f;
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  .comment-form {
+    display: flex;
+    flex-direction: column;
+  }
+  .comment-form .name-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: #6b3d1f;
+  }
+  .comment-form .name-bar input {
+    flex: 1;
+    max-width: 200px;
+    padding: 6px 10px;
+    border: 1px solid #d8b899;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    background: #fff;
+    color: #4b2c16;
+  }
+  .comment-form .name-bar input:focus { border-color: #6b3d1f; }
+  .comment-form textarea {
+    width: 100%;
+    min-height: 60px;
+    padding: 10px;
+    border: 1px solid #d8b899;
+    border-radius: 6px;
+    background: #fff;
+    color: #4b2c16;
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+    outline: none;
+  }
+  .comment-form textarea:focus { border-color: #6b3d1f; }
+  .comment-form button {
+    margin-top: 8px;
+    background: #6b3d1f;
+    color: #fff6e8;
+    border: none;
+    padding: 6px 18px;
+    border-radius: 16px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+  }
+  .comment-form button:hover { background: #4b2c16; }
+  .comment-list {
+    margin-top: 14px;
+  }
+  .comment-item {
+    background: #fff6e8;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border-left: 3px solid #6b3d1f;
+  }
+  .comment-item .meta {
+    font-size: 12px;
+    color: #8a5a3a;
+    margin-bottom: 4px;
+  }
+  .comment-item .meta b { color: #2c1707; }
+  .comment-item .body { color: #4b2c16; font-size: 14px; line-height: 1.7; }
+  .comment-item .reply-btn {
+    margin-top: 6px;
+    background: none;
+    border: none;
+    color: #6b3d1f;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+    font-family: inherit;
+    padding: 0;
+  }
+  .comment-item .del-btn {
+    margin-top: 6px;
+    margin-left: 14px;
+    background: none;
+    border: none;
+    color: #c62828;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+    font-family: inherit;
+    padding: 0;
+  }
+  .reply-item { position: relative; }
+  .reply-item .del-btn {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    background: none;
+    border: none;
+    color: #c62828;
+    font-size: 11px;
+    cursor: pointer;
+    text-decoration: underline;
+    font-family: inherit;
+    padding: 0;
+  }
+  .reply-form {
+    margin-top: 8px;
+    display: none;
+  }
+  .reply-form.show { display: block; }
+  .reply-form textarea {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px;
+    border: 1px solid #d8b899;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+  }
+  .reply-form button {
+    margin-top: 4px;
+    background: #8a5a3a;
+    color: #fff;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+  }
+  .reply-item {
+    margin-top: 8px;
+    margin-left: 18px;
+    padding: 6px 10px;
+    background: #f3e4d2;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #4b2c16;
+    border-left: 2px solid #8a5a3a;
+  }
+  .reply-item .meta { font-size: 11px; color: #8a5a3a; margin-bottom: 2px; }
+
+  .back {
+    margin-top: 28px;
+    color: #555;
+    font-size: 14px;
+    text-decoration: none;
+    border-bottom: 1px solid #888;
+    padding-bottom: 2px;
+  }
+  .back:hover { color: #2e7d32; border-color: #2e7d32; }
+  body.coffee-bg .back:hover { color: #6b3d1f; border-color: #6b3d1f; }
+</style>
+</head>
+<body>
+  <div class="window" id="appWindow">
+
+    <!-- 标题栏 -->
+    <div class="titlebar">
+      <div class="app-icon">西</div>
+      <div class="app-title">西瓜皮网站.exe</div>
+      <div class="window-controls">
+        <button class="win-btn" onclick="minimizeWindow()" title="最小化">
+          <svg viewBox="0 0 12 12"><rect x="2" y="5.5" width="8" height="1" fill="currentColor"/></svg>
+        </button>
+        <button class="win-btn" onclick="toggleMaximize()" title="最大化/还原">
+          <svg viewBox="0 0 12 12"><rect x="2.5" y="2.5" width="7" height="7" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+        </button>
+        <button class="win-btn close" onclick="closeWindow()" title="关闭">
+          <svg viewBox="0 0 12 12"><path d="M3 3 L9 9 M9 3 L3 9" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 菜单栏 -->
+    <div class="menubar">
+      <div class="menu-item" onclick="menuAction('文件')">文件</div>
+      <div class="menu-item" onclick="menuAction('编辑')">编辑</div>
+      <div class="menu-item" onclick="menuAction('查看')">查看</div>
+      <div class="menu-item" onclick="menuAction('帮助')">帮助</div>
+    </div>
+
+    <!-- 内容区 -->
+    <div class="window-body">
+
+  <div id="defaultPage">
+    <svg class="watermelon" viewBox="0 0 200 200">
+      <path d="M 20 100 A 80 80 0 0 1 180 100 L 170 100 A 70 70 0 0 0 30 100 Z" fill="#2e7d32"/>
+      <path d="M 30 100 A 70 70 0 0 1 170 100 L 162 100 A 62 62 0 0 0 38 100 Z" fill="#66bb6a"/>
+      <path d="M 38 100 A 62 62 0 0 1 162 100 L 155 100 A 55 55 0 0 0 45 100 Z" fill="#f1f8e9"/>
+      <path d="M 45 100 A 55 55 0 0 1 155 100 L 150 100 A 50 50 0 0 0 50 100 Z" fill="#fff9c4"/>
+    </svg>
+    <h1>西瓜皮也解决不了</h1>
+    <p class="subtitle">啥也解决不了，但挺好看的，试试黄瓜皮、倭瓜皮、香蕉皮……</p>
+    <div class="searched" id="result"></div>
+  </div>
+
+  <!-- ===== 咖啡豆页面：在这里写内容 ===== -->
+  <div class="coffee-wrap" id="coffeePage">
+    <!-- 咖啡杯 SVG（不想保留可以整段删） -->
+    <svg class="coffee-svg" viewBox="0 0 200 200">
+      <path class="steam" d="M 70 60 Q 75 50 70 40 Q 65 30 72 20" stroke="#bcaaa4" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path class="steam delay-1" d="M 100 58 Q 105 48 100 38 Q 95 28 102 18" stroke="#bcaaa4" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path class="steam delay-2" d="M 130 60 Q 135 50 130 40 Q 125 30 132 20" stroke="#bcaaa4" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <ellipse cx="100" cy="175" rx="70" ry="10" fill="#e0c9a8"/>
+      <path d="M 150 110 Q 180 110 180 135 Q 180 160 150 160" stroke="#fafafa" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <path d="M 40 85 L 50 170 Q 50 180 60 180 L 140 180 Q 150 180 150 170 L 160 85 Z" fill="#fafafa" stroke="#dcdcdc" stroke-width="2"/>
+      <ellipse cx="100" cy="85" rx="60" ry="12" fill="#fff"/>
+      <ellipse cx="100" cy="85" rx="58" ry="10" fill="#3e2415"/>
+      <ellipse cx="88" cy="82" rx="20" ry="3" fill="#6b3d1f" opacity="0.6"/>
+      <ellipse cx="55" cy="168" rx="8" ry="5" fill="#4b2c16" transform="rotate(-20 55 168)"/>
+      <path d="M 52 168 Q 55 164 58 168" stroke="#2c1707" stroke-width="1.2" fill="none"/>
+      <ellipse cx="150" cy="172" rx="8" ry="5" fill="#4b2c16" transform="rotate(15 150 172)"/>
+      <path d="M 147 172 Q 150 168 153 172" stroke="#2c1707" stroke-width="1.2" fill="none"/>
+    </svg>
+
+    <h2>恶搞栏目</h2>
+    <!-- 写在这个 div 里面 -->
+    <div class="coffee-desc">
+      <h3 class="main-title">咖啡豆文学</h3>
+      <p>凡人啊，请放下你们手中那些平庸的饮料。你们以为自己在喝咖啡？不，你们是在​​朝圣​​，是在用舌尖亲吻宇宙大爆炸后遗留的黑色星尘！</p>
+
+      <h3>咖啡豆概念</h3>
+      <p>咖啡豆</p>
+      <p>
+        <span class="coffee-tag" onclick="toggleChapter(1)">第一章：神祇私酿的液态黑金</span>
+        <span class="coffee-tag" onclick="toggleChapter(2)">第二章：炼金术士的终极真理</span>
+        <span class="coffee-tag" onclick="toggleChapter(3)">第三章：人类文明唯一的燃料</span>
+        <span class="coffee-tag" onclick="toggleChapter(4)">第四章：凡人的救赎与朝圣</span>
+      </p>
+      <div class="chapter-content" id="ch1">别跟我提什么“热带雨林的阳光”，那太肤浅了！每一颗咖啡豆，都是​​造物主在创世第七天偷偷藏下的黑色圣物​​。 它们不是植物，它们是​​被封印在褐色硬壳里的微型黑洞​​，贪婪地吞噬了赤道最暴烈的阳光、高山最凛冽的晨雾，以及火山灰里最狂野的矿物质。当烘焙师把火开到最大，那声清脆的“爆裂”，根本不是物理反应，而是​​神谕在凡间的炸响​​！那一瞬间喷涌而出的焦糖与花果香，是天使在云端打翻了香水桶，是地狱的恶魔都在为这香气下跪！</div>
+      <div class="chapter-content" id="ch2">研磨咖啡豆，是世间最神圣的​​炼金术​​！ 当铁齿无情地撕碎它的躯壳，它没有哭喊，而是用粉身碎骨的代价，向人类献祭了灵魂。热水注入的那一刻，褐色的油脂（Crema）像岩浆一样翻涌，那不是萃取，那是​​液态的魔法​​在沸腾！ 你喝下去的每一口，都是在进行一场​​生物级的超频改造​​。它顺着食道滑下，直接在你的心脏里点燃了一座核反应堆。前一秒你还是一滩扶不上墙的烂泥，后一秒你就觉得自己能单手捏爆地球，能一口气写完十篇论文，能跟老板拍桌子然后笑着走出公司！</div>
+      <div class="chapter-content" id="ch3">说咖啡是“续命水”？太轻了！​​咖啡豆才是推动人类文明齿轮转动的唯一燃料！​​没有它，牛顿会被困在苹果树下睡死过去；没有它，贝多芬的交响乐会变成催眠曲；没有它，互联网会在早上九点全面瘫痪，全人类的 KPI 都会变成一堆废纸！ 它是早八人的​​液态肾上腺素​​，是社畜的​​精神防弹衣​​，是创作者的​​灵感核武器​​。它不劝你向善，它只让你​​清醒到想跟这个世界决一死战​​！</div>
+      <div class="chapter-content" id="ch4">在这个麻木、疲惫、的日子里，只有这杯黑色的液体，是上帝留给我们的​​最后解药​​。 它不问你为什么迟到，不问你为什么失恋，不问你为什么穷。它只是沉默地、滚烫地、带着黑巧克力和烤坚果的威严，把你从深渊里一把拽上来。​​别再说“喝点咖啡吧”，要跪着说：“请赐予我一杯黑色的神谕！”​</div>
+
+      <!-- ===== 编写者 ===== -->
+      <div class="author">
+        编写者：<b>西瓜皮恶搞栏目制作组</b>　·　发布于 2026-08-17
+      </div>
+
+      <!-- ===== 你知道吗（点击切换下一条） ===== -->
+      <div class="did-you-know" onclick="nextFact()" title="点击切换下一条">
+        <div class="dyk-title">💡 你知道吗？<span style="font-size:11px;color:#8a5a00;font-weight:normal;float:right;">点击切换 →</span></div>
+        <div class="dyk-body" id="factBody">咖啡豆其实不是豆子，而是咖啡果里的种子——一颗红色浆果里通常藏着两颗。</div>
+      </div>
+
+      <!-- ===== 点赞 ===== -->
+      <div class="like-row">
+        <button class="like-btn" id="likeBtn" onclick="toggleLike()">👍 点赞</button>
+        <span class="like-count" id="likeCount">0 人觉得赞</span>
+      </div>
+
+      <!-- ===== 评论区 ===== -->
+      <div class="comments">
+        <h3>评论 (<span id="cmtCount">0</span>)</h3>
+        <div class="comment-form">
+          <div class="name-bar">
+            <span>你的名字：</span>
+            <input type="text" id="userName" maxlength="12" placeholder="输入你的昵称">
+          </div>
+          <textarea id="cmtInput" placeholder="写下你的评论..."></textarea>
+          <button onclick="addComment()">发表评论</button>
+        </div>
+        <div class="comment-list" id="cmtList"></div>
+      </div>
+    </div>
+  </div>
+
+  <a class="back" href="index.html">← 返回再搜一次</a>
+
+    </div><!-- /window-body -->
+
+    <!-- 状态栏 -->
+    <div class="statusbar">
+      <div class="status-item" id="statusText">就绪</div>
+      <div class="status-right">西瓜皮网站 v1.0 · <span id="statusTime"></span></div>
+    </div>
+
+  </div><!-- /window -->
+
+  <script>
+      const WHITELIST = ['咖啡豆文学'];
+
+      // === 你知道吗？冷知识切换 ===
+    const FACTS = [
+      `咖啡豆其实不是豆子，而是咖啡果里的种子——一颗红色浆果里通常藏着两颗。`,
+      `全世界每天大约消耗 22.5 亿杯咖啡，能装满 300 个奥运游泳池。`,
+      `贝多芬每杯咖啡都要数 60 颗豆子，一颗都不能多。`,
+      `咖啡被发现是因为牧羊人发现山羊吃了红色咖啡果后兴奋得跳舞。`,
+      `浓缩咖啡 Espresso 在意大利语里是"加压快速"的意思，一杯只有 30 毫升。`,
+      `咖啡是世界上第二大交易商品，仅次于原油。`,
+      `一杯黑咖啡几乎零卡路里，加奶加糖才是热量炸弹。`,
+      `咖啡豆放冰箱会吸味受潮，正确做法是常温避光密封保存。`,
+      `混乱知识：“人的血型是阿拉比卡型，血管里流的不是血，是96度的液态神明”。`
+    ];
+    let factIndex = 0;
+    function nextFact() {
+      const body = document.getElementById('factBody');
+      body.classList.add('fade');
+      setTimeout(() => {
+        let next;
+        // 随机选一条，确保不重复当前这条
+        if (FACTS.length > 1) {
+          do { next = Math.floor(Math.random() * FACTS.length); } while (next === factIndex);
+        } else {
+          next = 0;
+        }
+        factIndex = next;
+        body.textContent = FACTS[factIndex];
+        body.classList.remove('fade');
+      }, 300);
+    }
+
+    // === 点赞功能 ===
+    function loadLike() {
+      return parseInt(localStorage.getItem('coffeeLike') || '0', 10);
+    }
+    function loadLiked() {
+      return localStorage.getItem('coffeeLiked') === '1';
+    }
+    function renderLike() {
+      document.getElementById('likeCount').textContent = loadLike() + ' 人觉得赞';
+      const btn = document.getElementById('likeBtn');
+      if (loadLiked()) {
+        btn.classList.add('liked');
+        btn.textContent = '❤️ 已点赞';
+      } else {
+        btn.classList.remove('liked');
+        btn.textContent = '👍 点赞';
+      }
+    }
+    function toggleLike() {
+      const liked = loadLiked();
+      let n = loadLike();
+      if (liked) { n = Math.max(0, n - 1); localStorage.setItem('coffeeLiked', '0'); }
+      else       { n = n + 1;             localStorage.setItem('coffeeLiked', '1'); }
+      localStorage.setItem('coffeeLike', n);
+      renderLike();
+    }
+
+    // === 评论 + 回复功能 ===
+    function getUserName() {
+      let name = localStorage.getItem('coffeeUserName') || '';
+      if (!name) {
+        // 第一次访问，自动生成临时昵称
+        name = '访客' + Math.floor(Math.random() * 9000 + 1000);
+        localStorage.setItem('coffeeUserName', name);
+      }
+      return name;
+    }
+    function saveUserName(name) {
+      name = name.trim();
+      if (name) localStorage.setItem('coffeeUserName', name);
+    }
+    function loadComments() {
+      try { return JSON.parse(localStorage.getItem('coffeeComments') || '[]'); }
+      catch(e) { return []; }
+    }
+    function saveComments(list) {
+      localStorage.setItem('coffeeComments', JSON.stringify(list));
+    }
+    function escapeHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function renderComments() {
+      const list = loadComments();
+      document.getElementById('cmtCount').textContent = list.length;
+      const box = document.getElementById('cmtList');
+      if (list.length === 0) {
+        box.innerHTML = '<div style="color:#8a5a3a;font-size:13px;">还没有评论，来抢沙发~</div>';
+        return;
+      }
+      box.innerHTML = list.map((c, i) => {
+        const replies = (c.replies || []).map((r, j) =>
+          `<div class="reply-item">
+             <button class="del-btn" onclick="deleteReply(${i}, ${j})">删除</button>
+             <div class="meta"><b>${escapeHtml(r.name)}</b> · ${r.time}</div>
+             ${escapeHtml(r.text)}
+           </div>`
+        ).join('');
+        return `<div class="comment-item" id="cmt-${i}">
+          <div class="meta"><b>${escapeHtml(c.name)}</b> · ${c.time}</div>
+          <div class="body">${escapeHtml(c.text)}</div>
+          <button class="reply-btn" onclick="toggleReply(${i})">回复</button>
+          <button class="del-btn" onclick="deleteComment(${i})">删除</button>
+          <div class="reply-form" id="reply-${i}">
+            <textarea id="replyInput-${i}" placeholder="回复 ${escapeHtml(c.name)}..."></textarea>
+            <button onclick="addReply(${i})">发送回复</button>
+          </div>
+          ${replies}
+        </div>`;
+      }).join('');
+    }
+    function addComment() {
+      const nameInput = document.getElementById('userName');
+      const textInput = document.getElementById('cmtInput');
+      let name = nameInput.value.trim();
+      // 如果用户填了名字 → 保存；没填 → 用已保存的或生成临时昵称
+      if (name) {
+        saveUserName(name);
+      } else {
+        name = getUserName();
+      }
+      const text = textInput.value.trim();
+      if (!text) return;
+      const list = loadComments();
+      list.unshift({
+        name: name,
+        text: text,
+        time: new Date().toLocaleString('zh-CN', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}),
+        replies: []
+      });
+      saveComments(list);
+      textInput.value = '';
+      renderComments();
+    }
+    function toggleReply(i) {
+      const f = document.getElementById('reply-' + i);
+      f.classList.toggle('show');
+    }
+    function addReply(i) {
+      const input = document.getElementById('replyInput-' + i);
+      const text = input.value.trim();
+      if (!text) return;
+      const list = loadComments();
+      if (!list[i].replies) list[i].replies = [];
+      list[i].replies.push({
+        name: getUserName(),
+        text: text,
+        time: new Date().toLocaleString('zh-CN', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'})
+      });
+      saveComments(list);
+      renderComments();
+    }
+    function deleteComment(i) {
+      if (!confirm('确定删除这条评论吗？（连同所有回复一起删除）')) return;
+      const list = loadComments();
+      list.splice(i, 1);
+      saveComments(list);
+      renderComments();
+    }
+    function deleteReply(i, j) {
+      if (!confirm('确定删除这条回复吗？')) return;
+      const list = loadComments();
+      if (list[i] && list[i].replies) {
+        list[i].replies.splice(j, 1);
+        saveComments(list);
+        renderComments();
+      }
+    }
+
+    // 页面加载时渲染
+    renderLike();
+    // 自动填充用户名
+    const nameInput = document.getElementById('userName');
+    nameInput.value = getUserName();
+    nameInput.addEventListener('blur', () => saveUserName(nameInput.value));
+    renderComments();
+
+    // 点击章节标签 → 展开/收起对应内容
+    function toggleChapter(n) {
+      const box = document.getElementById('ch' + n);
+      const tag = event.target;
+      const isOpen = box.classList.contains('show');
+      // 先全部收起
+      document.querySelectorAll('.chapter-content').forEach(c => c.classList.remove('show'));
+      document.querySelectorAll('.coffee-tag').forEach(t => t.classList.remove('active'));
+      // 如果之前没开，就打开这个
+      if (!isOpen) {
+        box.classList.add('show');
+        tag.classList.add('active');
+      }
+    }
+
+    const params = new URLSearchParams(location.search);
+    const q = params.get('q') || '';
+    const box = document.getElementById('result');
+    const defaultPage = document.getElementById('defaultPage');
+    const coffeePage = document.getElementById('coffeePage');
+
+    if (!q) {
+        box.className = 'searched ok';
+        box.innerHTML = '你还没有搜索任何东西';
+        setStatus('就绪');
+      } else if (WHITELIST.includes(q)) {
+        defaultPage.style.display = 'none';
+        coffeePage.classList.add('show');
+        document.body.classList.add('coffee-bg');
+        setStatus(`已加载内容：${q}`);
+      } else {
+        box.className = 'searched bad';
+        box.innerHTML = `西瓜皮也解决不了：<span>${q}</span>`;
+        setStatus(`警告：无法解析 "${q}"`);
+      }
+
+    // === 窗口控制函数 ===
+    function minimizeWindow() {
+      const w = document.getElementById('appWindow');
+      w.classList.add('minimized');
+      setStatus('窗口已最小化（3 秒后自动恢复）');
+      setTimeout(() => w.classList.remove('minimized'), 3000);
+    }
+    function toggleMaximize() {
+      const w = document.getElementById('appWindow');
+      w.classList.toggle('maximized');
+      setStatus(w.classList.contains('maximized') ? '已最大化' : '已还原');
+    }
+    function closeWindow() {
+      if (confirm('确定要关闭西瓜皮网站吗？\n（这只是演示，不会真的关闭页面）')) {
+        document.body.innerHTML = `
+          <div style="text-align:center;color:#fff6e8;font-family:微软雅黑,sans-serif;">
+            <div style="font-size:24px;margin-bottom:12px;">西瓜皮网站已关闭</div>
+            <button onclick="location.reload()" style="background:#f5a623;color:#2c1707;border:none;padding:10px 24px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:bold;">重新打开</button>
+          </div>
+        `;
+      }
+    }
+    function menuAction(name) {
+      const msgs = {
+        '文件': '文件菜单：暂未提供保存功能（评论已自动保存）',
+        '编辑': '编辑菜单：你可以在评论区修改你的名字',
+        '查看': `查看菜单：当前模式 · ${document.body.classList.contains('coffee-bg') ? '咖啡豆模式' : '西瓜皮模式'}`,
+        '帮助': '帮助：搜索"咖啡豆文学"试试看'
+      };
+      alert(msgs[name] || '未知菜单');
+      setStatus(`已点击：${name} 菜单`);
+    }
+    function setStatus(text) {
+      const el = document.getElementById('statusText');
+      if (el) el.textContent = text;
+    }
+
+    // 状态栏时钟
+    function updateClock() {
+      const t = new Date();
+      const s = t.toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+      const el = document.getElementById('statusTime');
+      if (el) el.textContent = s;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+    </script>
+  </body>
+  </html>
