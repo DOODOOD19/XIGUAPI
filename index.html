@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>西瓜皮网站</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4b2c16">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="西瓜皮网站">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%234a90d9'/><text x='50' y='68' font-size='60' font-family='Arial' font-weight='bold' fill='white' text-anchor='middle'>D</text></svg>">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "微软雅黑", sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    color: #333;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  h1 { font-size: 32px; margin-bottom: 8px; }
+  .subtitle { color: #666; font-size: 16px; margin-bottom: 32px; }
+  .search-box {
+    display: flex;
+    width: min(560px, 90vw);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    border-radius: 28px;
+    overflow: hidden;
+    background: white;
+  }
+  .search-box input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 14px 24px;
+    font-size: 16px;
+    font-family: inherit;
+    background: transparent;
+  }
+  .search-box button {
+    border: none;
+    background: #4a90d9;
+    color: white;
+    padding: 0 28px;
+    font-size: 15px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s;
+  }
+  .search-box button:hover { background: #357abd; }
+  .history {
+    width: min(560px, 90vw);
+    margin-top: 20px;
+  }
+  .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 8px;
+    padding: 0 8px;
+  }
+  .history-header button {
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .history-header button:hover { color: #e74c3c; }
+  .history-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .history-item {
+    background: white;
+    color: #555;
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    transition: all 0.2s;
+  }
+  .history-item:hover {
+    background: #4a90d9;
+    color: white;
+  }
+  .history-empty {
+    color: #aaa;
+    font-size: 13px;
+    padding: 4px 8px;
+  }
+</style>
+</head>
+<body>
+  <h1>西瓜皮网站</h1>
+  <p class="subtitle">没有什么是一个西瓜皮解决不了的！</p>
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="输入关键词搜索..." onkeydown="if(event.key==='Enter') doSearch()">
+    <button onclick="doSearch()">搜索</button>
+  </div>
+  <div class="history">
+    <div class="history-header">
+      <span>搜索历史</span>
+      <button onclick="clearHistory()">清空</button>
+    </div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+  <script>
+    function getHistory() {
+      try { return JSON.parse(localStorage.getItem('searchHistory') || '[]'); }
+      catch(e) { return []; }
+    }
+    function saveHistory(list) {
+      localStorage.setItem('searchHistory', JSON.stringify(list));
+    }
+    function renderHistory() {
+      const list = getHistory();
+      const box = document.getElementById('historyList');
+      if (list.length === 0) {
+        box.innerHTML = '<div class="history-empty">暂无历史记录</div>';
+        return;
+      }
+      box.innerHTML = list.map(q =>
+        `<div class="history-item" onclick="searchAgain('${q.replace(/'/g, "\\'")}')">${q}</div>`
+      ).join('');
+    }
+    function searchAgain(q) {
+      document.getElementById('searchInput').value = q;
+      doSearch();
+    }
+    function clearHistory() {
+      if (confirm('确定清空所有搜索历史吗？')) {
+        saveHistory([]);
+        renderHistory();
+      }
+    }
+
+    function doSearch() {
+      const q = document.getElementById('searchInput').value.trim();
+      if (!q) return;
+      let list = getHistory().filter(x => x !== q);
+      list.unshift(q);
+      if (list.length > 10) list = list.slice(0, 10);
+      saveHistory(list);
+      window.location.href = 'watermelon.html?q=' + encodeURIComponent(q);
+    }
+
+    renderHistory();
+
+    // 注册 Service Worker（PWA 必需）
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>

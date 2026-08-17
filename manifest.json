@@ -1,0 +1,33 @@
+{
+  "name": "西瓜皮网站",
+  "short_name": "西瓜皮",
+  "description": "西瓜皮内容浏览器 - 咖啡豆恶搞栏目",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#1e3a5f",
+  "theme_color": "#4b2c16",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "https://api.iconify.design/mdi/cookie.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://api.iconify.design/mdi/watermelon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["entertainment", "productivity"],
+  "shortcuts": [
+    {
+      "name": "搜索咖啡豆文学",
+      "url": "./watermelon.html?q=咖啡豆文学",
+      "icons": [{ "src": "https://api.iconify.design/mdi/cookie.svg", "sizes": "any" }]
+    }
+  ]
+}
